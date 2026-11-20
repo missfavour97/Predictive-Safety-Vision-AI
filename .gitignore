@@ -1,0 +1,26 @@
+# Dataset videos and extracted dataset copies
+RWF-2000/
+data/
+Dataset/
+
+# Video and model artifacts
+*.avi
+*.mp4
+*.mov
+*.mkv
+*.pt
+*.pth
+*.onnx
+*.h5
+*.keras
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Editor and OS files
+.DS_Store
+.vscode/
