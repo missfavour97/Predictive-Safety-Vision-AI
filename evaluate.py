@@ -14,7 +14,7 @@ loader = DataLoader(
 
 model = ViolenceClassifier().to(device)
 model.load_state_dict(
-    torch.load("checkpoints/best_model.pth", map_location=device)
+    torch.load("checkpoints/fine_tuned_model.pth", map_location=device)
 )
 model.eval()
 
