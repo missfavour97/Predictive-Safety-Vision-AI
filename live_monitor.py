@@ -13,6 +13,7 @@ WINDOW_SECONDS = 5
 INFERENCE_INTERVAL = 1.0
 FIGHT_THRESHOLD = 0.50
 ALERT_AFTER_WINDOWS = 2
+ALERT_COOLDOWN_SECONDS = 15
 IMAGE_SIZE = (112, 112)
 ALARM_SOUND = "/System/Library/Sounds/Basso.aiff"
 
@@ -31,9 +32,9 @@ if not camera.isOpened():
         "in System Settings > Privacy & Security > Camera."
     )
 
-# Store small RGB frames from the most recent five seconds.
 frame_buffer = deque()
 last_inference_time = 0.0
+last_alert_time = -ALERT_COOLDOWN_SECONDS
 fight_score = None
 consecutive_high_scores = 0
 alert_latched = False
@@ -90,30 +91,46 @@ try:
                 consecutive_high_scores = 0
                 alert_latched = False
 
+            cooldown_finished = (
+                now - last_alert_time >= ALERT_COOLDOWN_SECONDS
+            )
+
             if (
                 consecutive_high_scores >= ALERT_AFTER_WINDOWS
                 and not alert_latched
+                and cooldown_finished
             ):
                 if Path(ALARM_SOUND).is_file():
-                    subprocess.Popen(["sh", "-c",
-                        'for i in 1 2 3; do afplay "$1"; done',
-                        "alarm", ALARM_SOUND])
+                    subprocess.Popen(
+                        [
+                            "sh",
+                            "-c",
+                            'for i in 1 2 3; do afplay "$1"; done',
+                            "alarm",
+                            ALARM_SOUND,
+                        ]
+                    )
                 else:
                     print("\a", end="", flush=True)
-                print(f"ALERT: possible violence (fight score {fight_score:.1%})")
+
+                print(
+                    f"ALERT: possible violence "
+                    f"(fight score {fight_score:.1%})"
+                )
+                last_alert_time = now
                 alert_latched = True
 
         if fight_score is None:
             status = "Building 5-second video window..."
-        elif (
-            consecutive_high_scores >= ALERT_AFTER_WINDOWS
-            and fight_score >= FIGHT_THRESHOLD
-        ):
-            status = f"ALERT - possible violence ({fight_score:.1%})"
+        elif fight_score >= FIGHT_THRESHOLD:
+            status = f"Possible violence ({fight_score:.1%})"
         else:
             status = f"Fight score: {fight_score:.1%}"
 
-        color = (0, 0, 255) if status.startswith("ALERT") else (0, 255, 0)
+        color = (0, 0, 255) if (
+            fight_score is not None and fight_score >= FIGHT_THRESHOLD
+        ) else (0, 255, 0)
+
         cv2.putText(
             frame,
             status,
